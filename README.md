@@ -55,6 +55,32 @@ their noun, and "'s" is dropped. It can't do gender agreement (*un clôture blan
 "is running" literally as *est court*, and keeps English order everywhere else. These are the
 weaknesses listed on slide 3 of the proposal.
 
+## Evaluation
+
+`python evaluation_report.py` decodes the full test set with all three systems and writes charts and
+numbers to `outputs/eval/` (`metrics.json` has everything).
+
+| | Rule-based | No attention | Attention |
+|---|---|---|---|
+| Test BLEU | 19.17 | 40.65 | **56.76** |
+| 1 / 2 / 3 / 4-gram precision (%) | 65.9 / 29.3 / 14.2 / 6.8 | 70.9 / 49.0 / 35.6 / 26.3 | **79.8 / 64.1 / 52.6 / 43.4** |
+| Brevity penalty | 0.924 | 0.957 | 0.971 |
+| Exact-match sentences (of 1,000) | 5 | 100 | **176** |
+| Median sentence BLEU | 11.1 | 34.5 | **54.6** |
+| Colour-word accuracy (n=219) | 96.8% | 90.4% | 94.5% |
+| un/une article accuracy (n=689) | 62.4% | 96.8% | **98.0%** |
+
+- **BLEU by sentence length:** without attention BLEU falls from 52.4 (8 words or fewer) to 21.4 (21+ words);
+  with attention it only falls from 58.8 to 46.3. This is the fixed-vector bottleneck showing up in real data.
+- **Article confusion matrix:** the rule-based system never writes "une", so all 219 feminine sentences are wrong.
+- **Colour confusion matrix:** the neural models' errors are mostly dropped colours (20 without attention, 9 with it).
+- Translation has no fixed classes (each step is a 6,486-way choice), so confusion matrices are built on two small
+  word groups instead of the whole vocabulary.
+
+![Loss curves](outputs/eval/loss_curves.png)
+![Article confusion matrix](outputs/eval/confusion_article.png)
+![Colour confusion matrix](outputs/eval/confusion_colour.png)
+
 ## Web demo
 
 ```bash
@@ -82,6 +108,9 @@ The app was tested in a desktop browser and at phone width (375 px).
 | `visualize.py` | Translate one sentence and save its attention heatmap |
 | `rule_based.py` | Rule-based baseline: IBM-1 dictionary + reordering rules, test BLEU |
 | `app.py`, `web/index.html` | Flask web demo (API + single-page frontend) |
+| `evaluation_report.py` | Full test-set evaluation: BLEU parts, BLEU by length, confusion matrices, loss curves -> `outputs/eval/` |
+| `VIVA_GUIDE.md` | Viva preparation guide split into 3 parts (problem and data, model, training and results) |
+| `NMT_Attention_Project_v3.pptx`, `deck_work/` | Presentation (26 slides) and the script that generates it (`node build_deck.js`) |
 | `plot_curves.py` | Validation-BLEU curves for both models from the training logs |
 | `demo.ipynb` | Demo notebook: heatmaps for example sentences + test samples |
 
@@ -96,8 +125,12 @@ python evaluate.py --ckpt checkpoints/baseline.pt
 python rule_based.py                # rule-based baseline (builds its dictionary on first run)
 python visualize.py "A man in a red shirt is playing guitar." --out outputs/guitar.png
 python plot_curves.py
+python evaluation_report.py         # confusion matrices, BLEU by length, loss curves -> outputs/eval/
 jupyter notebook demo.ipynb
 ```
+
+`data/` and `checkpoints/` are not in the repo (`.gitignore`); after cloning, run the training commands above first,
+then `python app.py`.
 
 Run one GPU job at a time; two processes sharing a laptop GPU can crash with a cuBLAS error.
 

@@ -3,3 +3,8 @@ checkpoints/
 __pycache__/
 .ipynb_checkpoints/
 *.log
+node_modules/
+deck_work/orig/
+deck_work/fitlog.json
+deck_work/package*.json
+~$*
