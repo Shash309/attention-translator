@@ -112,12 +112,14 @@ def edit_front(d, P):
     set_text(P[14], "Dr. C. Sherin Shibi")
     set_text(P[32], "NOVEMBER 2026")
     # declaration
-    set_text(P[43], NAMES, keep=5)
-    set_text(P[45], REGS, keep=3)
+    set_text(P[43], "Ankam Sai Anirudh, Atharva Bhutada,\nVansh Agrawal, Shashwat Sharma", keep=5)
+    set_text(P[45], "RA2311026010087, RA2311026010089,\nRA2311026010120, RA2311026010121", keep=3)
     last = copy.deepcopy(P[45].runs[-1]._r)
     for t in last.findall(qn("w:t")):
-        t.text = TITLE
+        t.text = ""
     P[47]._p.append(last)
+    from docx.text.run import Run
+    Run(last, P[47]).text = TITLE1 + "\n" + "English–French Translation Using a Bi-LSTM Encoder–Decoder\nwith Bahdanau Attention"
     # bonafide
     rewrite(P[69], [
         ("Certified that 21CSC406J - NEURAL NETWORKS AND DEEP LEARNING project report titled “", False), (TITLE, True),
@@ -136,7 +138,25 @@ def edit_front(d, P):
     # declaration layout: names column, title textbox, tighter spacing, signature names
     for i in (41, 43, 45, 47):
         pf = P[i].paragraph_format
-        pf.left_indent, pf.first_line_indent = Twips(3780), Twips(-2880)
+        pf.left_indent, pf.first_line_indent = Twips(3300), Twips(-3300)
+        for tb in P[i]._p.findall(".//" + qn("w:tabs")):
+            tb.getparent().remove(tb)
+        pf.tab_stops.add_tab_stop(Twips(2900))
+        pf.tab_stops.add_tab_stop(Twips(3300))
+    for i in (34, 35, 36):
+        pf = P[i].paragraph_format
+        pf.left_indent, pf.right_indent, pf.first_line_indent = Twips(0), Twips(0), Twips(0)
+        pf.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        pf.space_before = Pt(2)
+    P[34].paragraph_format.space_before = Pt(0)
+    P[36].paragraph_format.space_after = Pt(10)
+    for i in (38, 49, 51, 59):
+        P[i].paragraph_format.left_indent = Twips(0)
+        P[i].paragraph_format.right_indent = Twips(0)
+        P[i].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    P[39].paragraph_format.left_indent = Twips(0)
+    P[39].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    P[39].paragraph_format.space_before = Pt(6)
     for r in P[46]._p.findall(qn("w:r")):
         if b"drawing" in etree.tostring(r):
             P[46]._p.remove(r)
@@ -267,36 +287,18 @@ def build(pages=None):
     # front lists, written before the front-matter section break
     f = Writer(d, anchor=el346)
     f.title("TABLE OF CONTENTS")
-    for t in ("ABSTRACT", "TABLE OF CONTENTS", "LIST OF FIGURES", "LIST OF TABLES", "ABBREVIATIONS"):
-        f.dotted("", t, pages["front"].get(t, "x"), bold=True, size=12)
-    def hdr_line(first, second):
-        hdr = f.fmt(f.p(), "l", before=12, after=4, line=1.0)
-        hdr.paragraph_format.tab_stops.add_tab_stop(Twips(LEFT + 1500))
-        hdr.paragraph_format.tab_stops.add_tab_stop(Twips(LEFT + TEXT_W), docx.enum.text.WD_TAB_ALIGNMENT.RIGHT)
-        from lib import add_runs
-        add_runs(hdr, f"{first}	{second}	PAGE NO.", 11, True)
-        pPr = hdr._p.get_or_add_pPr()
-        bd = OxmlElement("w:pBdr"); bt = OxmlElement("w:bottom")
-        for k, v in (("val", "single"), ("sz", "6"), ("space", "1"), ("color", "000000")):
-            bt.set(qn("w:" + k), v)
-        bd.append(bt); pPr.append(bd)
-    hdr_line("NO.", "TITLE")
+    rows = [(-1, "No.", "Title", "Page")]
+    for t_ in ("ABSTRACT", "TABLE OF CONTENTS", "LIST OF FIGURES", "LIST OF TABLES", "ABBREVIATIONS"):
+        rows.append((0, "", t_, pages["front"].get(t_, "x")))
     for lvl, label, title, key in w.toc:
-        pg = pages["toc"].get(key, "x")
-        if lvl == 0:
-            f.dotted(label, title.upper() if label else title, pg, 0, True, 12, num_w=1500 if label else 0).paragraph_format.space_before = Pt(9)
-        elif lvl == 1:
-            f.dotted(label, title, pg, 350, False, 11, num_w=1550)
-        else:
-            f.dotted(label, title, pg, 750, False, 10.5, num_w=1750)
+        rows.append((lvl, label, title.upper() if (lvl == 0 and label) else title, pages["toc"].get(key, "x")))
+    f.index_table(rows)
     f.title("LIST OF FIGURES")
-    hdr_line("NO.", "TITLE")
-    for n, title in w.lof:
-        f.dotted(n, title, pages["lof"].get(n, "x"), 0, False, 11.5, num_w=1500).paragraph_format.space_before = Pt(5)
+    f.index_table([(-1, "Fig. No.", "Title", "Page")] +
+                  [(1, n, t_, pages["lof"].get(n, "x")) for n, t_ in w.lof])
     f.title("LIST OF TABLES")
-    hdr_line("NO.", "TITLE")
-    for n, title in w.lot:
-        f.dotted(n, title, pages["lot"].get(n, "x"), 0, False, 11.5, num_w=1500).paragraph_format.space_before = Pt(5)
+    f.index_table([(-1, "Table No.", "Title", "Page")] +
+                  [(1, n, t_, pages["lot"].get(n, "x")) for n, t_ in w.lot])
     f.title("ABBREVIATIONS")
     for a_, b_ in ABBR:
         para = f.fmt(f.p(), "l", left=900, first=0, before=2, line=1.15)

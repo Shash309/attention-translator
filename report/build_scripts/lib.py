@@ -218,6 +218,45 @@ class Writer:
         self.fmt(self.p(), "l", before=0, after=0, line=0.8)
         return t
 
+    def index_table(self, rows, widths=(1200, 7100, 900)):
+        """Contents / list table. rows: (level, no, title, page); level -1 = column header."""
+        t = self.doc.add_table(rows=len(rows), cols=3)
+        self._place(t._tbl)
+        t.alignment = 1
+        t.autofit = False
+        tblPr = t._tbl.tblPr
+        borders = OxmlElement("w:tblBorders")
+        for edge, col, sz in (("top", "444444", "8"), ("bottom", "444444", "8"), ("insideH", "BFBFBF", "4")):
+            e = OxmlElement(f"w:{edge}")
+            e.set(qn("w:val"), "single"); e.set(qn("w:sz"), sz); e.set(qn("w:space"), "0"); e.set(qn("w:color"), col)
+            borders.append(e)
+        tblPr.append(borders)
+        lay = OxmlElement("w:tblLayout"); lay.set(qn("w:type"), "fixed"); tblPr.append(lay)
+        look = {-1: (11.5, True, "D9D9D9", 0), 0: (11.5, True, "EEEEEE", 0), 1: (11, False, None, 0),
+                2: (10, False, None, 280)}
+        for ri, (lvl, no, title, page) in enumerate(rows):
+            tr = t.rows[ri]
+            trPr = tr._tr.get_or_add_trPr()
+            trPr.append(OxmlElement("w:cantSplit"))
+            size, bold, fill, ind = look[lvl]
+            for ci, val in enumerate((no, title, page)):
+                cell = tr.cells[ci]
+                cell.width = Twips(widths[ci])
+                tcPr = cell._tc.get_or_add_tcPr()
+                mar = OxmlElement("w:tcMar")
+                for side, w_ in (("top", 45), ("bottom", 45), ("left", 90), ("right", 90)):
+                    m = OxmlElement(f"w:{side}"); m.set(qn("w:w"), str(w_)); m.set(qn("w:type"), "dxa"); mar.append(m)
+                tcPr.append(mar)
+                if fill:
+                    shade(tcPr, fill)
+                para = cell.paragraphs[0]
+                al = "c" if ci != 1 or lvl == -1 and ci == 1 and False else "l"
+                if ci == 2 or (ci == 0):
+                    al = "c"
+                self.fmt(para, al, left=ind if ci == 1 else 0, right=0, before=0, after=0, line=1.15)
+                add_runs(para, str(val), size, bold)
+        self.fmt(self.p(), "l", before=0, after=0, line=0.8)
+
     def figure(self, path, width_in, caption):
         para = self.fmt(self.p(), "c", left=0, right=0, before=6, after=0, line=1.0, keep_next=True)
         para.add_run().add_picture(path, width=Inches(width_in))
