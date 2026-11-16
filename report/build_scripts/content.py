@@ -561,9 +561,15 @@ def write_body(w):
                "A catch-all handler that keeps HTTP error codes and logs unexpected exceptions.",
                "Graceful handling of rare words by mapping them to `<unk>` and listing them to the user."])
     w.h1("5.9 Screenshots")
-    w.figure(os.path.join(REPO, "deck_work", "demo_hero.jpg"), 5.6, "Web Demo Home Page with Inference Console")
-    w.figure(os.path.join(REPO, "deck_work", "demo_cards.png"), 6.0, "Side-by-Side Translations of the Three Systems")
-    w.figure(os.path.join(REPO, "deck_work", "demo_align_raw.jpg"), 5.6, "Alignment View of the Attention Weights")
+    w.para("Figures 5.1 to 5.3 show output of the visualisation script (`visualize.py`): each heatmap plots the "
+           "attention weights of the model for one sentence, with the generated French words on the vertical axis and "
+           "the English source words on the horizontal axis. Darker cells mean higher attention.", keep_next=True)
+    w.figure(os.path.join(OUT, "a_black_dog_is_running_on_the_beach.png"), 4.4,
+             "Attention Output: \"a black dog is running on the beach.\"")
+    w.figure(os.path.join(OUT, "two_young_girls_are_playing_in_the_white_snow.png"), 4.4,
+             "Attention Output: \"two young girls are playing in the white snow.\"")
+    w.figure(os.path.join(OUT, "a_woman_is_cooking_food_in_a_small_kitchen.png"), 4.4,
+             "Attention Output: \"a woman is cooking food in a small kitchen.\"")
     w.h1("5.10 Implementation Outcome")
     w.para("All planned modules were implemented and verified: data pipeline, rule-based baseline, attention and "
            "no-attention models, training and evaluation scripts, heatmap visualisation, and the web "
@@ -668,10 +674,6 @@ def write_body(w):
            "the current word is fed in.", keep_next=True)
     w.figure(os.path.join(OUT, "a_man_in_a_red_shirt_is_playing_guitar.png"), 4.4,
              "Attention Heatmap: \"a man in a red shirt is playing guitar.\"")
-    w.figure(os.path.join(OUT, "two_young_girls_are_playing_in_the_white_snow.png"), 4.4,
-             "Attention Heatmap: \"two young girls are playing in the white snow.\"")
-    w.figure(os.path.join(OUT, "a_woman_is_cooking_food_in_a_small_kitchen.png"), 4.4,
-             "Attention Heatmap: \"a woman is cooking food in a small kitchen.\"")
     w.h2("6.5.2 Sample Test Translations")
     w.table(["Source / Reference", "Rule-based", "No attention", "Attention"],
             [["People are fixing the roof of a house. / Des gens réparent le toit d'une maison.",
