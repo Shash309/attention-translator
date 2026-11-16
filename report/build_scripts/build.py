@@ -8,11 +8,12 @@ import sys
 import docx
 import fitz
 from lxml import etree
+from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import content
-from lib import FONT, Writer, replace_in_paragraph, rewrite, set_text
+from lib import FONT, LEFT, TEXT_W, Writer, add_runs, replace_in_paragraph, rewrite, set_text
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt, Twips
 
@@ -107,6 +108,7 @@ def edit_front(d, P):
         t[0].text = f"{name} [{reg}]"
         for x in t[1:]:
             x.text = ""
+    set_text(P[4], "21CSC406J - NEURAL NETWORKS AND DEEP LEARNING")
     set_text(P[14], "Dr. C. Sherin Shibi")
     set_text(P[32], "NOVEMBER 2026")
     # declaration
@@ -118,18 +120,19 @@ def edit_front(d, P):
     P[47]._p.append(last)
     # bonafide
     rewrite(P[69], [
-        ("Certified that 21CSP302L - Project report titled “", False), (TITLE, True),
+        ("Certified that 21CSC406J - NEURAL NETWORKS AND DEEP LEARNING project report titled “", False), (TITLE, True),
         ("” is the Bonafide work of “", False),
         (", ".join(f"{n} [{r}]" for n, r in MEMBERS), True),
         ("” who carried out the project work under my supervision. Certified further, that to the best of my "
          "knowledge the work reported herein does not form any other project report or dissertation on the basis "
          "of which a degree or award was conferred on an earlier occasion on this or any other candidate.", False)])
-    for t in d.tables[:2]:
-        for row in t.rows:
-            for cell in row.cells:
-                for p in cell.paragraphs:
-                    replace_in_paragraph(p, "Dr. Anupama C G", "Dr. C. Sherin Shibi")
-                    replace_in_paragraph(p, "Anupama C G", "C. Sherin Shibi")
+    cell = d.tables[1].rows[0].cells[0]
+    cps = cell.paragraphs
+    set_text(cps[1], "DR. C. SHERIN SHIBI")
+    for r in cps[1].runs:
+        r.font.size = Pt(10.5)
+    set_text(cps[2], "ASSISTANT PROFESSOR")
+    cps[3]._p.getparent().remove(cps[3]._p)
     # declaration layout: names column, title textbox, tighter spacing, signature names
     for i in (41, 43, 45, 47):
         pf = P[i].paragraph_format
@@ -143,6 +146,7 @@ def edit_front(d, P):
                 if "Vansh Agrawal" in p.text:
                     set_text(p, "Ankam Sai Anirudh          Atharva Bhutada          Vansh Agrawal          "
                                 "Shashwat Sharma")
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                     for r in p.runs:
                         r.font.size = Pt(8.5)
     tp = d.tables[0]._tbl.tblPr.find(qn("w:tblpPr"))
@@ -150,6 +154,8 @@ def edit_front(d, P):
         d.tables[0]._tbl.tblPr.remove(tp)
     for i in (41, 43, 45, 47, 49, 51):
         P[i].paragraph_format.space_before = Pt(9)
+    jc = OxmlElement("w:jc"); jc.set(qn("w:val"), "center")
+    d.tables[0]._tbl.tblPr.append(jc)
     P[57].paragraph_format.space_after = Pt(10)
     P[59].paragraph_format.space_before = Pt(10)
     P[63].paragraph_format.page_break_before = True
@@ -263,25 +269,34 @@ def build(pages=None):
     f.title("TABLE OF CONTENTS")
     for t in ("ABSTRACT", "TABLE OF CONTENTS", "LIST OF FIGURES", "LIST OF TABLES", "ABBREVIATIONS"):
         f.dotted("", t, pages["front"].get(t, "x"), bold=True, size=12)
-    hdr = f.fmt(f.p(), "l", before=10, after=2, line=1.0)
-    hdr.paragraph_format.tab_stops.add_tab_stop(Twips(1300))
-    hdr.paragraph_format.tab_stops.add_tab_stop(Twips(9780), docx.enum.text.WD_TAB_ALIGNMENT.RIGHT)
-    from lib import add_runs
-    add_runs(hdr, "CHAPTER NO.\tTITLE\tPAGE NO.", 11, True)
+    def hdr_line(first, second):
+        hdr = f.fmt(f.p(), "l", before=12, after=4, line=1.0)
+        hdr.paragraph_format.tab_stops.add_tab_stop(Twips(LEFT + 1500))
+        hdr.paragraph_format.tab_stops.add_tab_stop(Twips(LEFT + TEXT_W), docx.enum.text.WD_TAB_ALIGNMENT.RIGHT)
+        from lib import add_runs
+        add_runs(hdr, f"{first}	{second}	PAGE NO.", 11, True)
+        pPr = hdr._p.get_or_add_pPr()
+        bd = OxmlElement("w:pBdr"); bt = OxmlElement("w:bottom")
+        for k, v in (("val", "single"), ("sz", "6"), ("space", "1"), ("color", "000000")):
+            bt.set(qn("w:" + k), v)
+        bd.append(bt); pPr.append(bd)
+    hdr_line("NO.", "TITLE")
     for lvl, label, title, key in w.toc:
         pg = pages["toc"].get(key, "x")
         if lvl == 0:
-            f.dotted(label, title.upper() if label else title, pg, 0, True, 12, num_w=620 if label else 0)
+            f.dotted(label, title.upper() if label else title, pg, 0, True, 12, num_w=1500 if label else 0).paragraph_format.space_before = Pt(9)
         elif lvl == 1:
-            f.dotted(label, title, pg, 380, False, 11, num_w=700)
+            f.dotted(label, title, pg, 350, False, 11, num_w=1550)
         else:
-            f.dotted(label, title, pg, 900, False, 10.5, num_w=850)
+            f.dotted(label, title, pg, 750, False, 10.5, num_w=1750)
     f.title("LIST OF FIGURES")
+    hdr_line("NO.", "TITLE")
     for n, title in w.lof:
-        f.dotted(n, title, pages["lof"].get(n, "x"), 0, False, 11.5, num_w=800)
+        f.dotted(n, title, pages["lof"].get(n, "x"), 0, False, 11.5, num_w=1500).paragraph_format.space_before = Pt(5)
     f.title("LIST OF TABLES")
+    hdr_line("NO.", "TITLE")
     for n, title in w.lot:
-        f.dotted(n, title, pages["lot"].get(n, "x"), 0, False, 11.5, num_w=800)
+        f.dotted(n, title, pages["lot"].get(n, "x"), 0, False, 11.5, num_w=1500).paragraph_format.space_before = Pt(5)
     f.title("ABBREVIATIONS")
     for a_, b_ in ABBR:
         para = f.fmt(f.p(), "l", left=900, first=0, before=2, line=1.15)

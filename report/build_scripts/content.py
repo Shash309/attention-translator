@@ -817,8 +817,8 @@ def write_body(w):
         return "NLLB" if a.startswith("NLLB") else a.split()[-1]
     from lib import add_runs
     for r in sorted(refs, key=key):
-        para = w.fmt(w.p(), "j", left=LEFT + 400, first=-400, before=6, line=1.3)
-        add_runs(para, r, 11.5)
+        para = w.fmt(w.p(), "j", left=LEFT + 400, first=-400, before=3, line=1.1)
+        add_runs(para, r, 10.5)
 
     # ======================= APPENDIX A =======================
     w.chapter("APPENDIX A", "CODING")
